@@ -14,6 +14,7 @@ import net.minecraft.client.renderer.ItemRenderer;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.IFormattableTextComponent;
@@ -35,6 +36,7 @@ public class HudRenderer {
 		if (e.getType() != ElementType.ALL) return;
 		Minecraft mc = Minecraft.getInstance();
 		PlayerEntity p = mc.player;
+		if (p == null) return;
 		ItemRenderer rdn = mc.getItemRenderer();
 		Iterable<ItemStack> items = p.getAllSlots();
 		int amount = (int) StreamSupport.stream(items.spliterator(), false).filter(s -> !s.isEmpty()).count();
@@ -52,7 +54,7 @@ public class HudRenderer {
 		World world = mc.level;
 		long day = world.getGameTime() / 24000;
 		String time = timeToString(world.getGameTime());
-		ResourceLocation biome = world.getBiome(p.blockPosition()).getRegistryName();
+		ResourceLocation biome = world.getBiomeName(p.blockPosition()).map(RegistryKey::location).orElse(new ResourceLocation("unknown"));
 		String biomeUnloc = "biome." + biome.getNamespace() + "." + biome.getPath();
 		IFormattableTextComponent biomeTxt = new TranslationTextComponent(biomeUnloc);
 		if (isSlimeChunk(world, p.blockPosition())) biomeTxt = biomeTxt.withStyle(TextFormatting.DARK_GREEN);
