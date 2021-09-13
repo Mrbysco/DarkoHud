@@ -35,6 +35,7 @@ public class HudRenderer {
 	public void render(RenderGameOverlayEvent.Post e) {
 		if (e.getType() != ElementType.ALL) return;
 		Minecraft mc = Minecraft.getInstance();
+		if (mc.screen != null) return;
 		PlayerEntity p = mc.player;
 		if (p == null) return;
 		ItemRenderer rdn = mc.getItemRenderer();

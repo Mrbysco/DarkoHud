@@ -23,18 +23,18 @@ Displays some additional information on the client screen.
     mandatory=true #mandatory
     versionRange="[36.1.65,)" #mandatory
     ordering="NONE"
-    side="BOTH"
+    side="CLIENT"
 
 [[dependencies.darkohud]]
     modId="minecraft"
     mandatory=true
     versionRange="[1.16.5,)"
     ordering="NONE"
-    side="BOTH"
+    side="CLIENT"
 	
 [[dependencies.darkohud]]
     modId="placebo"
     mandatory=true
     versionRange="[4.6.0,)"
     ordering="NONE"
-    side="BOTH"
+    side="CLIENT"
