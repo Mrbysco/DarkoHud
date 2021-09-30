@@ -1,3 +1,6 @@
+## 1.0.3
+* Fixed the clock using the wrong time source.
+
 ## 1.0.2
 * Made the HUD not display when another gui is open (like chat).
 

@@ -54,7 +54,7 @@ public class HudRenderer {
 
 		World world = mc.level;
 		long day = world.getGameTime() / 24000;
-		String time = timeToString(world.getGameTime());
+		String time = timeToString(world.dayTime());
 		ResourceLocation biome = world.getBiomeName(p.blockPosition()).map(RegistryKey::location).orElse(new ResourceLocation("unknown"));
 		String biomeUnloc = "biome." + biome.getNamespace() + "." + biome.getPath();
 		IFormattableTextComponent biomeTxt = new TranslationTextComponent(biomeUnloc);
