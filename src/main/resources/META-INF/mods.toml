@@ -2,39 +2,30 @@ modLoader="javafml" #mandatory
 
 loaderVersion="[32,)" #mandatory
 
-authors="Shadows_of_Fire" #optional
+authors="${author}" #optional
 
 license="MIT License" #mandatory
 
 [[mods]] #mandatory
 
-modId="darkohud" #mandatory
+modId="${modid}" #mandatory
 
-version="${file.jarVersion}" #mandatory
+version="${version}" #mandatory
 
-displayName="Darko HUD" #mandatory
+displayName="${modName}" #mandatory
 
-description='''
-Displays some additional information on the client screen.
-'''
+description='''${desc}'''
 
-[[dependencies.darkohud]] #optional
-    modId="forge" #mandatory
-    mandatory=true #mandatory
-    versionRange="[36.1.65,)" #mandatory
-    ordering="NONE"
-    side="CLIENT"
-
-[[dependencies.darkohud]]
-    modId="minecraft"
+[[dependencies.${modid}]]
+    modId="forge"
     mandatory=true
-    versionRange="[1.16.5,)"
+    versionRange="[${mcVersion},)"
     ordering="NONE"
     side="CLIENT"
 	
-[[dependencies.darkohud]]
+[[dependencies.${modid}]]
     modId="placebo"
     mandatory=true
-    versionRange="[4.6.0,)"
+    versionRange="[${placeboVersion},)"
     ordering="NONE"
     side="CLIENT"

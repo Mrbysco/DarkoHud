@@ -1,22 +1,21 @@
 package shadows.darkohud;
 
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.util.ResourceLocation;
+import dev.shadowsoffire.placebo.network.MessageHelper;
+import dev.shadowsoffire.placebo.network.PacketDistro;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.entity.EntityJoinWorldEvent;
-import net.minecraftforge.fml.ExtensionPoint;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.fml.IExtensionPoint;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.loading.FMLEnvironment;
-import net.minecraftforge.fml.network.FMLNetworkConstants;
-import net.minecraftforge.fml.network.NetworkRegistry;
-import net.minecraftforge.fml.network.simple.SimpleChannel;
-import shadows.placebo.util.NetworkUtils;
+import net.minecraftforge.network.NetworkConstants;
+import net.minecraftforge.network.NetworkRegistry;
+import net.minecraftforge.network.simple.SimpleChannel;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @Mod(DarkoHud.MODID)
 public class DarkoHud {
@@ -36,15 +35,14 @@ public class DarkoHud {
 		if (FMLEnvironment.dist == Dist.CLIENT) {
 			MinecraftForge.EVENT_BUS.register(new HudRenderer());
 		}
-		NetworkUtils.registerMessage(CHANNEL, 0, new SeedMessage(0));
-		ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.DISPLAYTEST, () -> Pair.of(() -> FMLNetworkConstants.IGNORESERVERONLY, (a, b) -> true));
+		MessageHelper.registerMessage(CHANNEL, 0, new SeedMessage.Provider());
+		ModLoadingContext.get().registerExtensionPoint(IExtensionPoint.DisplayTest.class, () -> new IExtensionPoint.DisplayTest(() -> NetworkConstants.IGNORESERVERONLY, (a, b) -> true));
 		MinecraftForge.EVENT_BUS.addListener(this::login);
 	}
 
-	public void login(EntityJoinWorldEvent e) {
-		if (e.getEntity() instanceof ServerPlayerEntity) {
-			ServerPlayerEntity p = (ServerPlayerEntity) e.getEntity();
-			NetworkUtils.sendTo(CHANNEL, new SeedMessage(p.getLevel().getSeed()), p);
+	public void login(EntityJoinLevelEvent e) {
+		if (e.getEntity() instanceof ServerPlayer p) {
+			PacketDistro.sendTo(CHANNEL, new SeedMessage(p.serverLevel().getSeed()), p);
 		}
 	}
 

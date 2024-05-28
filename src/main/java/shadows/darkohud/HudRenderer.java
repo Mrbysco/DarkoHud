@@ -5,25 +5,23 @@ import java.util.Locale;
 import java.util.Random;
 import java.util.stream.StreamSupport;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
-
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.Tesselator;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.ItemRenderer;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.RegistryKey;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraft.world.World;
-import net.minecraft.world.biome.Biomes;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import net.minecraftforge.client.event.RenderGameOverlayEvent.ElementType;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biomes;
+import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public class HudRenderer {
@@ -32,13 +30,13 @@ public class HudRenderer {
 	public static boolean hasSeed = false;
 
 	@SubscribeEvent
-	public void render(RenderGameOverlayEvent.Post e) {
-		if (e.getType() != ElementType.ALL) return;
+	public void render(RenderGuiOverlayEvent.Post e) {
+		if (!e.getOverlay().id().equals(new ResourceLocation("hotbar"))) return;
 		Minecraft mc = Minecraft.getInstance();
 		if (mc.screen != null) return;
-		PlayerEntity p = mc.player;
+		Player p = mc.player;
 		if (p == null) return;
-		ItemRenderer rdn = mc.getItemRenderer();
+		GuiGraphics guiGraphics = e.getGuiGraphics();
 		Iterable<ItemStack> items = p.getAllSlots();
 		int amount = (int) StreamSupport.stream(items.spliterator(), false).filter(s -> !s.isEmpty()).count();
 		int y = mc.getWindow().getGuiScaledHeight() / 2;
@@ -49,18 +47,19 @@ public class HudRenderer {
 				i--;
 				continue;
 			}
-			renderItem(rdn, s, 2, y - amount * 8 + 16 * (amount - i) - 8);
+			renderItem(guiGraphics, s, 2, y - amount * 8 + 16 * (amount - i) - 8);
 		}
 
-		World world = mc.level;
-		long day = world.getGameTime() / 24000;
-		String time = timeToString(world.dayTime());
-		ResourceLocation biome = world.getBiomeName(p.blockPosition()).map(RegistryKey::location).orElse(new ResourceLocation("unknown"));
+		Level level = mc.level;
+		if(level == null) return;
+		long day = level.getGameTime() / 24000;
+		String time = timeToString(level.dayTime());
+		ResourceLocation biome = level.getBiome(p.blockPosition()).unwrapKey().map(ResourceKey::location).orElse(new ResourceLocation("unknown"));
 		String biomeUnloc = "biome." + biome.getNamespace() + "." + biome.getPath();
-		IFormattableTextComponent biomeTxt = new TranslationTextComponent(biomeUnloc);
-		if (isSlimeChunk(world, p.blockPosition())) biomeTxt = biomeTxt.withStyle(TextFormatting.DARK_GREEN);
-		TranslationTextComponent txt = new TranslationTextComponent("Day %s (%s) %s", new TranslationTextComponent("%s", day), new TranslationTextComponent("%s", time).withStyle(TextFormatting.GREEN), biomeTxt);
-		MatrixStack matrix = new MatrixStack();
+		MutableComponent biomeTxt = Component.translatable(biomeUnloc);
+		if (isSlimeChunk(level, p.blockPosition())) biomeTxt = biomeTxt.withStyle(ChatFormatting.DARK_GREEN);
+		MutableComponent txt = Component.translatable("Day %s (%s) %s", Component.translatable("%s", day), Component.translatable("%s", time).withStyle(ChatFormatting.GREEN), biomeTxt);
+		PoseStack matrix = new PoseStack();
 		float scale = 1;
 		int width = mc.getWindow().getGuiScaledWidth();
 		int barWidth = p.getOffhandItem().isEmpty() ? 91 : 121;
@@ -68,29 +67,30 @@ public class HudRenderer {
 			scale = (width / 2F - barWidth) / mc.font.width(txt);
 		}
 		matrix.scale(scale, scale, 1);
-		mc.font.drawShadow(matrix, txt, 1 / scale, (mc.getWindow().getGuiScaledHeight() - mc.font.lineHeight * scale) / scale, 0xFFFFFF);
+
+		guiGraphics.drawString(mc.font, txt, (int)(1 / scale), (int)((mc.getWindow().getGuiScaledHeight() - mc.font.lineHeight * scale) / scale), 0xFFFFFF, true);
 	}
 
-	private void drawItemText(FontRenderer font, ItemStack stack, int x, int y, String txt) {
+	private void drawItemText(Font font, ItemStack stack, int x, int y, String txt) {
 		if (!stack.isEmpty()) {
-			MatrixStack matrixstack = new MatrixStack();
+			PoseStack poseStack = new PoseStack();
 			if (stack.getCount() != 1 || txt != null) {
 				String s = txt == null ? String.valueOf(stack.getCount()) : txt;
-				matrixstack.translate(0.0D, 0.0D, Minecraft.getInstance().getItemRenderer().blitOffset + 200);
-				IRenderTypeBuffer.Impl irendertypebuffer$impl = IRenderTypeBuffer.immediate(Tessellator.getInstance().getBuilder());
-				font.drawInBatch(s, (float) (x + 19 - 2 - font.width(s)), (float) (y + 6 + 3), 16777215, true, matrixstack.last().pose(), irendertypebuffer$impl, false, 0, 15728880);
+				poseStack.translate(0.0F, 0.0F, 200.0F);
+				MultiBufferSource.BufferSource irendertypebuffer$impl = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
+				font.drawInBatch(s, (float) (x + 19 - 2 - font.width(s)), (float) (y + 6 + 3), 16777215, true, poseStack.last().pose(), irendertypebuffer$impl, Font.DisplayMode.NORMAL, 0, 15728880);
 				irendertypebuffer$impl.endBatch();
 			}
 		}
 	}
 
-	private void renderItem(ItemRenderer rdn, ItemStack stack, int x, int y) {
-		rdn.renderGuiItem(stack, x, y);
+	private void renderItem(GuiGraphics guiGraphics, ItemStack stack, int x, int y) {
+		guiGraphics.renderItem(stack, x, y);
 		if (stack.isDamageableItem()) {
 			int dmg = stack.getDamageValue();
 			int max = stack.getMaxDamage();
 			String msg = "" + (max - dmg);
-			FontRenderer font = Minecraft.getInstance().font;
+			Font font = Minecraft.getInstance().font;
 			drawItemText(font, stack, x + 2 + font.width(msg), y - 4, msg);
 		}
 		if (stack.getCount() > 1) {
@@ -123,8 +123,8 @@ public class HudRenderer {
 		return RANDOM.nextInt(10) == 0;
 	}
 
-	public boolean isSlimeChunk(World world, BlockPos pos) {
-		return hasSeed && isSlimeChunk(seed, pos) || Biomes.SWAMP.equals(world.getBiomeName(pos).orElse(null)) && pos.getY() > 50 && pos.getY() < 70;
+	public boolean isSlimeChunk(Level world, BlockPos pos) {
+		return hasSeed && isSlimeChunk(seed, pos) || Biomes.SWAMP.equals(world.getBiome(pos).unwrapKey().orElse(null)) && pos.getY() > 50 && pos.getY() < 70;
 	}
 
 }
